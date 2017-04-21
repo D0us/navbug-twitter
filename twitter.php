@@ -26,7 +26,7 @@ class Twitter {
 	*/
 	public function get_third_party_accounts() {
 		// Get accounts from db or just hardcode them here
-		$accounts = ['BillGates'];
+		$accounts = ['Sydney_Uni'];
 		return $accounts;
 
 	}
@@ -34,6 +34,31 @@ class Twitter {
 	public function check_last_lookup($user_ids = NULL) {
 		return true;
 		}
+
+
+	/*
+	Get the the id of the most recent tweet created by a user
+	Use the return to tell the lookup where to stop
+	*/
+	public function get_last_tweet_id($user_id) {
+
+			try {
+
+				$dbh = new PDO("mysql:host=127.0.0.1;dbname=twitter;charset=utf8", "root", "root");
+				$dbh->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );  
+
+				$sql = "SELECT * FROM `tweets` WHERE `screen_name` = :screen_name ORDER BY `id` ASC LIMIT 1";
+				$sth = $dbh->prepare($sql);
+				$sth->bindParam(":screen_name", $user_id);
+				$sth->execute();
+				$result = $sth->fetch();
+				return $result['id'];
+
+			} catch (PDOException $e) {
+				print_r($e);
+			}
+
+	}
 
 	public function get_tweets($user_ids = NULL) {
 
@@ -50,36 +75,52 @@ class Twitter {
 		foreach ($user_ids as $user_id) {
 
 			$request_params = array(
-				'count' 			=> 25,
+				'count' 			=> 100,
 				'exclude_replies' 	=> true,
-				'user_id' 			=> $user_id
+				'user_id' 			=> $user_id,
 				);
 
-			$statuses = $connection->get("statuses/home_timeline", $request_params);
+			$since_id = $this->get_last_tweet_id($user_id);
+			
+			if (isset($since_id) && !empty($since_id)) {
+				$request_params['since_id'] = $since_id;		
+			}
+
+			$response = $connection->get("statuses/user_timeline", $request_params);
 
 			if ($connection->getLastHttpCode() != 200) {
 				// Error
+				print_r($response);
+				echo 'Twitter API response error - '.$response;
 				continue;
 			}
 
-			// print_r($statuses);
 
 			/*
 			Sample code - Insert tweet into db if it doesn't exist already
 			*/
+
+			print_r($response);
 			try {
 
-				$db = new PDO("mysql:host=127.0.0.1;dbname=twitter;charset=utf8", "admin", "1234");
+				$dbh = new PDO("mysql:host=127.0.0.1;dbname=twitter;charset=utf8", "root", "root");
+				$dbh->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );  
 
-				$sql = "INSERT INTO `tweets`
+				$sql = "INSERT IGNORE INTO `tweets`
 						(`id`, `screen_name`, `name`, `text`, `date_posted`, `lookup_date`)
 						VALUES (:id, :screen_name, :name, :tweet_text, :date_posted, CURRENT_DATE)";
 
-				$stmt = $pdo->prepare($sql);
-				echo 'test';
-				foreach($statuses as $status) {
-					echo '1';
-					$stmt->execute(array('id' => $status['id'], 'screen_name' => $status['screen_name'], 'name' => $status['name'], 'tweet_text' => $status['text'], 'date_posted' => $status['created_at']));
+				foreach($response as $status) {
+
+					$sth = $dbh->prepare($sql);
+ 					echo $status->id;
+					$sth->bindParam(":id", $status->id);
+					$sth->bindParam(":screen_name", $status->user->screen_name);
+					$sth->bindParam(":name", $status->user->name);
+					$sth->bindParam(":tweet_text", $status->text);
+					$sth->bindParam(":date_posted", $status->created_at);
+
+					$sth->execute();
 				}
 
 			} catch (PDOException $e) {
@@ -87,32 +128,7 @@ class Twitter {
 			}
 
 
-
-
 		}
-
-
-	}
-
-	public function connect_test() {
-			try {
-
-				$db = new PDO("mysql:host=localhost;port=3306;dbname=twitter;charset=utf8", "test", "");
-
-				// $sql = "INSERT INTO `tweets`
-				// 		(`id`, `screen_name`, `name`, `text`, `date_posted`, `lookup_date`)
-				// 		VALUES (:id, :screen_name, :name, :tweet_text, :date_posted, CURRENT_DATE)";
-
-				// $stmt = $pdo->prepare($sql);
-				// echo 'test';
-				// foreach($statuses as $status) {
-				// 	echo '1';
-				// 	$stmt->execute(array('id' => $status['id'], 'screen_name' => $status['screen_name'], 'name' => $status['name'], 'tweet_text' => $status['text'], 'date_posted' => $status['created_at']));
-				// }
-
-			} catch (PDOException $e) {
-				print_r($e);
-			}
 
 
 	}
@@ -128,8 +144,8 @@ error_reporting(E_ALL);
 
 
 $twitter = new Twitter();
-// $twitter->get_tweets();
-$twitter->connect_test();
+$twitter->get_tweets();
+// $twitter->connect_test();
 
 
 
