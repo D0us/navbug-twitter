@@ -10,16 +10,18 @@ error_reporting(E_ALL);
 
 $twitter = new Twitter();
 
-
 for ($i = 0; $i < 900; $i++) {
 	$twitter->collect_tweets();	
 }
 
 // Collect and store tweets in db
-
 // $twitter->collect_tweets();	
 
+// Provide own accounts
+// $accounts = ['aldousscales', 'Sydney_Uni'];
+// $twitter->collect_tweets($accounts);	
 
+// Get tweets from db 
 // $tweets = $twitter->get_tweets();
 // print_r($tweets);
 
