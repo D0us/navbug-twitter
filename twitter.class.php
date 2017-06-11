@@ -30,6 +30,9 @@ class Twitter {
 		return $accounts;
 	}
 
+	/**
+	* Get the remaining requests available for 15 min window
+	*/
 	public function get_rate_limit() {
 		$connection = new TwitterOAuth($this->CONSUMER_KEY, $this->CONSUMER_SECRET, $this->access_token, $this->access_token_secret);
 			$response = $connection->get("application/rate_limit_status", ['resources' => 'statuses']);
@@ -119,7 +122,6 @@ class Twitter {
 				continue;
 			}
 
-
 			/*
 			Sample code - Insert tweet into db if it doesn't exist already
 			*/
@@ -151,7 +153,6 @@ class Twitter {
 			}
 
 		}
-
 	}
 
 
