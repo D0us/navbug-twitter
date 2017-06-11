@@ -11,9 +11,13 @@ require_once('twitter.class.php');
 $twitter = new Twitter();
 
 // Collect and store tweets in db
-$twitter->collect_tweets();	
+$twitter->collect_tweets();
 
-// Read tweets
+// Provide own accounts
+// $accounts = ['aldousscales', 'Sydney_Uni'];
+// $twitter->collect_tweets($accounts);	
+
+// Get tweets from db 
 // $tweets = $twitter->get_tweets();
 // print_r($tweets);
 

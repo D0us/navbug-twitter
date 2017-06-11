@@ -4,14 +4,21 @@ require "vendor/autoload.php";
 
 use Abraham\TwitterOAuth\TwitterOAuth;
 
+/*
+* -- Navbug Twitter class --
+* Collect and store new tweets from given accounts 
+* Use periodically using a CRON script or on page load
+*/
 class Twitter {
+
+	// Debug mode - displays errors. Set to false in production
+	private const $DEBUG = true;
 
 	// Set twitter api credentials here
 	private $CONSUMER_KEY = 'BN1KASFmawuldI44iFP6AQ';
 	private $CONSUMER_SECRET = '7pDjgU7JlAcdrOGsm24LM8XI6zDqcFqQw6A5cs2sI';
 	private $access_token = '2237875400-0Cvk12XJcDr4SixJeIm80ovmUUxgovRufySuYjN';
-	private $access_token_secret = 'iwlQHpmuV8OLNhDWjjMXlLm193GtLwrOSqiHeVO6Ldgwi';
- 
+	private $access_token_secret = 'iwlQHpmuV8OLNhDWjjMXlLm193GtLwrOSqiHeVO6Ldgwi'; 
 
 	function __construct() {
 
@@ -43,10 +50,9 @@ class Twitter {
 			}
 	}
 
-
 	/**
 	* Get the the id of the most recent tweet created by a user
-	* Use the return to tell the lookup where to stop
+	* Use the return to tell collect_tweets lookup where to stop
 	*/
 	public function get_last_tweet_id($user_id) {
 
@@ -62,7 +68,8 @@ class Twitter {
 				return $result['id'];
 
 			} catch (PDOException $e) {
-				print_r($e);
+				if ($this->DEBUG)
+					print_r($e);
 			}
 
 	}
@@ -83,10 +90,10 @@ class Twitter {
 				return $results;
 
 			} catch (PDOException $e) {
-				print_r($e);
+				if ($this->DEBUG)
+					print_r($e);
 			}
 	}
-
 
 	/**
 	* Request new tweets from supplied users and store the result in db
@@ -105,7 +112,7 @@ class Twitter {
 		foreach ($user_ids as $user_id) {
 
 			$request_params = array(
-				'count' 			=> 100, //max 3200
+				'count' 			=> 100, //max 3200 - consider setting to max for first account lookup (heavy payload)
 				'exclude_replies' 	=> true,
 				'screen_name' 		=> $user_id,
 				);
@@ -117,16 +124,14 @@ class Twitter {
 			$response = $connection->get("statuses/user_timeline", $request_params);
 			if ($connection->getLastHttpCode() != 200) {
 				// Error
-				print_r($response);
-				echo 'Twitter API response error - '.$response;
+				if ($this->DEBUG)
+					print_r($response);
 				continue;
 			}
 
 			/*
-			Sample code - Insert tweet into db if it doesn't exist already
+			Working sample code - Insert tweet into db if it doesn't exist already
 			*/
-
-			// print_r($response);
 			try {
 
 				$dbh = new PDO("mysql:host=127.0.0.1;dbname=twitter;charset=utf8", "root", "root");
@@ -149,7 +154,8 @@ class Twitter {
 				}
 
 			} catch (PDOException $e) {
-				print_r($e);
+				if ($this->DEBUG)
+					print_r($e);
 			}
 
 		}
